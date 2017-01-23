@@ -58,4 +58,4 @@ Additionally, see [Summon Usage](https://github.com/conjurinc/summon#usage) docu
 
 ## Authors
 99.99% credit goes to [@burdzz](https://github.com/burdzz)  
-00.01% [@anapsix](https://github.com/anapsix), for hack-jamming [@burdzz](https://github.com/burdzz'] code into Conjur provider
+00.01% [@anapsix](https://github.com/anapsix), for hack-jamming [@burdzz'](https://github.com/burdzz) code into Summon provider

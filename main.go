@@ -245,6 +245,9 @@ func main() {
 	providerVarSlice := strings.Split(providerVar, "/")
 
 	product, environment, secret := providerVarSlice[0], providerVarSlice[1], providerVarSlice[2]
+	if len(secret) > 0 {
+		secret = "." + secret
+	}
 
 	if len(os.Getenv("CERBERUS_API")) == 0 {
 		printAndExit("You must set CERBERUS_API environment variable")
@@ -281,7 +284,7 @@ func main() {
 		printAndExit(err.Error())
 	}
 
-	secrets := gjson.Get(string(body), "data." + secret )
+	secrets := gjson.Get(string(body), "data" + secret)
 
 	fmt.Print(secrets)
 

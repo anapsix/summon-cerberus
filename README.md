@@ -41,6 +41,14 @@ $ summon --provider summon-cerberus \
 DATADOG_API_TOKEN=6d4f1e2992a11a332550aa555e630f0dc
 ```
 
+### Example 3
+```bash
+$ export CERBERUS_API='https://mycerbersus_endpoint.com'
+$ DATADOG_API_KEY=$(summon-cerberus product/myenv/datadog_api_token)
+$ echo $DATADOG_API_KEY
+6d4f1e2992a11a332550aa555e630f0dc
+```
+
 ## Configuration
 
 summon-cerberus uses the [official AWS Go SDK](https://github.com/aws/aws-sdk-go).

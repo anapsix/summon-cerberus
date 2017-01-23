@@ -59,7 +59,6 @@ type CerberusResponse struct {
 	Renewable bool `json:"renewable"`
 }
 
-
 func getAWSRegion() string {
 	// Build the request
 	req, err := http.NewRequest("GET", "http://169.254.169.254/latest/dynamic/instance-identity/document", nil)
@@ -164,6 +163,78 @@ func debug(msg string) {
 	}
 }
 
+func authCerberus(url string) string {
+
+	accountID := getAccountID()
+	role := getIAMRole()
+	region := getAWSRegion()
+
+	debug(fmt.Sprintf("URL:> %s", url))
+
+	var jsonStr = []byte(`{"account_id": "` + accountID + `", "role_name": "` + role + `", "region": "` + region + `"}`)
+
+	// Build the request
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
+	// req.Header.Set("X-Custom-Header", "myvalue")
+	req.Header.Set("Content-Type", "application/json")
+	// Send the request via a client
+	// Do sends an HTTP request and
+	// returns an HTTP response
+	client := &http.Client{}
+	resp_auth, err := client.Do(req)
+	if err != nil {
+		printAndExit(err.Error())
+	}
+	// Callers should close resp.Body
+	// when done reading from it
+	// Defer the closing of the body
+	defer resp_auth.Body.Close()
+	// Print the responses for testing
+	//fmt.Println("response Status:", resp.Status)
+	//fmt.Println("response Headers:", resp.Header)
+	//body, _ := ioutil.ReadAll(resp.Body)
+	//fmt.Println("response Body:", string(body))
+	var record_auth AuthDataResponse
+
+	if err := json.NewDecoder(resp_auth.Body).Decode(&record_auth); err != nil {
+		log.Println(err)
+	}
+
+	decodedAuthData, err := base64.StdEncoding.DecodeString(record_auth.AuthData)
+	if err != nil {
+		printAndExit(err.Error())
+	}
+
+	kmsClient := kms.New(session.New(&aws.Config{
+		Region: aws.String(region),
+	}))
+
+	params := &kms.DecryptInput{
+		CiphertextBlob: decodedAuthData,
+	}
+
+	resp_cerb, err := kmsClient.Decrypt(params)
+	if err != nil {
+		printAndExit(err.Error())
+	}
+
+	//return string(resp.Plaintext), nil
+	//fmt.Println(string(resp_cerb.Plaintext))
+
+	debug(string(resp_cerb.Plaintext))
+
+	var record_resp CerberusResponse
+
+	if err := json.Unmarshal([]byte(resp_cerb.Plaintext), &record_resp); err != nil {
+		log.Println(err)
+	}
+
+	debug(string(record_resp.ClientToken))
+
+	return record_resp.ClientToken
+
+}
+
 func main() {
 
 	if len(os.Args) != 2 {
@@ -179,18 +250,17 @@ func main() {
 		printAndExit("You must set CERBERUS_API environment variable")
 	}
 
-	accountID := getAccountID()
-	role := getIAMRole()
-	region := getAWSRegion()
 	url := os.Getenv("CERBERUS_API") + "/v1/auth/iam-role"
 
-	debug(fmt.Sprintf("URL:> %s", url))
+	clientToken := authCerberus(url)
 
-	var jsonStr = []byte(`{"account_id": "` + accountID + `", "role_name": "` + role + `", "region": "` + region + `"}`)
+	url2 := os.Getenv("CERBERUS_API") + fmt.Sprintf("/v1/secret/app/%s/%s", product, environment)
+	debug(fmt.Sprintf("URL:> %s", url2))
 
 	// Build the request
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
-	// req.Header.Set("X-Custom-Header", "myvalue")
+	//bytes.NewBuffer(jsonStr)
+	req, err := http.NewRequest("GET", url2, nil)
+	req.Header.Set("X-Vault-Token", clientToken)
 	req.Header.Set("Content-Type", "application/json")
 
 	// Send the request via a client
@@ -198,7 +268,6 @@ func main() {
 	// returns an HTTP response
 	client := &http.Client{}
 	resp, err := client.Do(req)
-
 	if err != nil {
 		printAndExit(err.Error())
 	}
@@ -207,72 +276,7 @@ func main() {
 	// when done reading from it
 	// Defer the closing of the body
 	defer resp.Body.Close()
-
-	// Print the responses for testing
-	//fmt.Println("response Status:", resp.Status)
-	//fmt.Println("response Headers:", resp.Header)
-	//body, _ := ioutil.ReadAll(resp.Body)
-	//fmt.Println("response Body:", string(body))
-	var record AuthDataResponse
-
-	if err := json.NewDecoder(resp.Body).Decode(&record); err != nil {
-		log.Println(err)
-	}
-
-	decodedAuthData, err := base64.StdEncoding.DecodeString(record.AuthData)
-	if err != nil {
-		printAndExit(err.Error())
-	}
-
-	kmsClient := kms.New(session.New(&aws.Config{
-	 	Region: aws.String(region),
-	}))
-
-	params := &kms.DecryptInput {
-		CiphertextBlob: decodedAuthData,
-	}
-
-	resps, err := kmsClient.Decrypt(params)
-	if err != nil {
-		printAndExit(err.Error())
-	}
-
-	//return string(resp.Plaintext), nil
-
-	debug(string(resps.Plaintext))
-
-	var record2 CerberusResponse
-
-	if err := json.Unmarshal([]byte(resps.Plaintext), &record2); err != nil {
-		printAndExit(err.Error())
-	}
-
-	debug(string(record2.ClientToken))
-
-	//var jsonStr = []byte(`{"account_id": "` + accountID + `", "role_name": "` + role + `", "region": "` + region + `"}`)
-	url2 := os.Getenv("CERBERUS_API") + fmt.Sprintf("/v1/secret/app/%s/%s", product, environment)
-	debug(fmt.Sprintf("URL:> %s", url2))
-
-	// Build the request
-	//bytes.NewBuffer(jsonStr)
-	req2, err := http.NewRequest("GET", url2, nil)
-	req2.Header.Set("X-Vault-Token", record2.ClientToken)
-	req2.Header.Set("Content-Type", "application/json")
-
-	// Send the request via a client
-	// Do sends an HTTP request and
-	// returns an HTTP response
-	client2 := &http.Client{}
-	resp2, err := client2.Do(req2)
-	if err != nil {
-		printAndExit(err.Error())
-	}
-
-	// Callers should close resp.Body
-	// when done reading from it
-	// Defer the closing of the body
-	defer resp2.Body.Close()
-	body, err := ioutil.ReadAll(resp2.Body)
+	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		printAndExit(err.Error())
 	}
@@ -282,5 +286,3 @@ func main() {
 	fmt.Print(secrets)
 
 }
-
-

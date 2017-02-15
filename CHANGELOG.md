@@ -6,11 +6,19 @@ This project adheres to [Semantic Versioning](http://semver.org/) and [Keep a ch
 ## [Unreleased]
 ### Added
 - README: example of using the provider directly, without `summon`
+- README: added Limitations section
+
+### Modified
+- README: fixed provider name in first paragraph of Usage
+
+### Removed
+- removed unused Dockerfile
 
 ## [0.1.1]
 ### Added
 - allow retrieving all available secrets via `product/environment/` pattern
 - added an examples with custom secrets file
+
 ### Modified
 - moving auth logic into authCerberus function
 - build script now generates release archive

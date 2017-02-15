@@ -6,7 +6,7 @@ Provides access to secrets stored in [Cerberus](http://engineering.nike.com/cerb
 
 ## Usage
 
-[Set cerberus-s3 as your Summon provider](https://github.com/conjurinc/summon#flags).
+[Set summon-cerberus as your Summon provider](https://github.com/conjurinc/summon#flags).
 
 Make sure to set `CERBERUS_API` via environment variable.  
 Give summon a path to an object in Cerberus and it will fetch it for you and
@@ -55,6 +55,11 @@ summon-cerberus uses the [official AWS Go SDK](https://github.com/aws/aws-sdk-go
 It will use the credentials file or environment variables [as they explain](https://github.com/aws/aws-sdk-go#configuring-credentials).
 
 Additionally, see [Summon Usage](https://github.com/conjurinc/summon#usage) documentation.
+
+## Limitations
+
+summon-cerberus provider assumes the usage of IAM profiles and currently does not support usage of AWS API key/secret. As such, it is unusable anywhere but EC2 instances.  
+Improvements are required (PRs welcome) to make it support AWS key/secret the way AWS CLI tool does.
 
 ## Authors
 99.99% credit goes to [@burdzz](https://github.com/burdzz)  
